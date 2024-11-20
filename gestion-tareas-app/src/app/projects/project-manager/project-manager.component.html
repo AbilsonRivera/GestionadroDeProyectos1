@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Gestión de Proyectos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="danger" (click)="onLogout()"> 
+        <ion-icon name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Formulario para agregar un nuevo proyecto -->
+  <ion-item>
+    <ion-input
+      [(ngModel)]="newProjectName"
+      placeholder="Nombre del proyecto"
+    ></ion-input>
+    <ion-button (click)="addProject()" expand="block">Agregar Proyecto</ion-button>
+  </ion-item>
+
+
+  <ion-list>
+    <ion-item-sliding *ngFor="let project of projects">
+    
+      <ion-item-options side="end">
+        <ion-item-option color="warning" (click)="editProject(project)">
+          Editar
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="deleteProject(project.id)">
+          Eliminar
+        </ion-item-option>
+      </ion-item-options>
+
+      <!-- Información del proyecto -->
+      <ion-item (click)="viewTasks(project.id)">
+        <ion-label>{{ project.name }}</ion-label>
+      </ion-item>
+    </ion-item-sliding>
+  </ion-list>
+
+  <!-- Formulario para editar un proyecto -->
+  <ion-item *ngIf="editProjectId !== null">
+    <ion-input
+      [(ngModel)]="editProjectName"
+      placeholder="Editar nombre del proyecto"
+    ></ion-input>
+    <ion-button (click)="saveEditProject()" expand="block">Guardar</ion-button>
+    <ion-button (click)="cancelEdit()" expand="block" color="medium">Cancelar</ion-button>
+  </ion-item>
+</ion-content>

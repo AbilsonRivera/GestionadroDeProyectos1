@@ -1,0 +1,29 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/projects"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Gestión de Tareas</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item *ngFor="let task of tasks">
+      <ion-label>
+        <h2>{{ task.title }}</h2>
+        <p>{{ task.description }}</p>
+      </ion-label>
+      <ion-toggle [(ngModel)]="task.is_completed" (ionChange)="updateTask(task)"></ion-toggle>
+      <ion-button color="danger" (click)="deleteTask(task.id)">Eliminar</ion-button>
+    </ion-item>
+  </ion-list>
+
+  <ion-item>
+    <ion-input [(ngModel)]="newTask.title" placeholder="Nueva Tarea"></ion-input>
+  </ion-item>
+  <ion-item>
+    <ion-input [(ngModel)]="newTask.description" placeholder="Descripción"></ion-input>
+  </ion-item>
+  <ion-button expand="block" (click)="createTask()">Agregar Tarea</ion-button>
+</ion-content>

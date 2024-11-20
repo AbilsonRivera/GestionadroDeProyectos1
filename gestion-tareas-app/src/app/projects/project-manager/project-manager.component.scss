@@ -1,0 +1,111 @@
+/* Estilos generales */
+ion-header {
+    --background: #2c3e50;  /* Fondo oscuro pero con tono más suave */
+    --color: #ecf0f1;  /* Texto blanco/plateado */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);  /* Sombra suave */
+  }
+  
+  ion-toolbar {
+    --background: #34495e;  /* Fondo oscuro con un tono azul grisáceo */
+    --color: #ecf0f1;  /* Texto blanco/plateado */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);  /* Sombra suave */
+  }
+  
+  ion-title {
+    font-weight: bold;
+    letter-spacing: 1px;  /* Espaciado entre letras */
+    font-size: 20px;  /* Ajustar tamaño del título */
+    color: #ecf0f1;  /* Título en blanco */
+  }
+  
+  /* Estilos de la lista de tareas */
+  ion-list {
+    --background: #f9f9f9;  /* Fondo gris claro */
+    margin-top: 20px;
+  }
+  
+  ion-item {
+    --background: #ffffff;  /* Fondo blanco */
+    --color: #2c3e50;  /* Texto gris oscuro */
+    margin-bottom: 12px;
+    border-radius: 12px;  /* Bordes redondeados */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Sombra suave */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  ion-item:hover {
+    transform: translateY(-5px);  /* Efecto de elevar el ítem */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  /* Efecto de sombra al pasar el cursor */
+  }
+  
+  ion-label h2 {
+    font-weight: bold;
+    font-size: 16px;
+    color: #2c3e50;  /* Títulos en gris oscuro */
+  }
+  
+  /* Estilo para el toggle (botón de completado) */
+  ion-toggle {
+    --background-checked: #8e44ad;  /* Morado vibrante cuando está marcado */
+    --background-unchecked: #bdc3c7;  /* Gris suave cuando está desmarcado */
+    --border-radius: 20px;
+    --size: 24px;
+  }
+  
+  /* Estilos para los botones */
+  ion-button {
+    --background: #3498db;  /* Azul vibrante */
+    --color: #ffffff;  /* Texto blanco */
+    --border-radius: 50px;  /* Bordes redondeados */
+    --box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  ion-button:hover {
+    transform: translateY(-3px);  /* Efecto de elevar el botón */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);  /* Sombra más intensa */
+  }
+  
+  ion-button[color="danger"] {
+    --background: #e74c3c;  /* Rojo brillante para el botón de eliminar */
+  }
+  
+  ion-input {
+    --background: #ecf0f1;  /* Fondo gris muy claro */
+    --color: #2c3e50;  /* Texto gris oscuro */
+    --padding-start: 16px;
+    --padding-end: 16px;
+    border-radius: 8px;
+    --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  ion-input:focus {
+    --background: #ffffff;  /* Cambio a blanco al estar enfocado */
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);  /* Sombra más intensa cuando se enfoca */
+  }
+  
+  ion-button[expand="block"] {
+    margin-top: 10px;
+    border-radius: 50px;  /* Bordes más redondeados */
+  }
+  
+  ion-button[color="medium"] {
+    --background: #95a5a6;  /* Gris moderado para el botón de cancelar */
+  }
+  
+  /* Estilos específicos para los toggles */
+  ion-toggle {
+    --color-checked: #8e44ad;  /* Morado cuando está marcado */
+    --color-unchecked: #bdc3c7;  /* Gris claro cuando está desmarcado */
+  }
+  
+  ion-toggle .toggle-icon {
+    background-color: #e51515;  /* Asegurando que el círculo del toggle sea blanco */
+  }
+  
+  /* Agregar transición a todo para hacerlo más fluido */
+  * {
+    transition: all 0.3s ease-in-out;
+  }
+  
