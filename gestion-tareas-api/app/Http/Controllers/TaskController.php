@@ -23,17 +23,11 @@ class TaskController extends Controller
     }
 
     // Obtener todas las tareas de un proyecto
-    public function index($projectId) // Cambia esto para que reciba el ID del proyecto como parámetro
+    public function index($projectId) 
     {
-        return Task::where('project_id', $projectId)->get(); // Ya no necesitas usar $request aquí
+        return Task::where('project_id', $projectId)->get();
     }
 
-    // Obtener una tarea específica
-    public function show($id)
-    {
-        $task = Task::findOrFail($id);
-        return response()->json($task);
-    }
 
     // Actualizar una tarea
     public function update(Request $request, $id)
