@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 21-11-2024 a las 23:48:48
+-- Tiempo de generación: 22-11-2024 a las 01:41:09
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -25,16 +25,26 @@ DELIMITER $$
 --
 -- Procedimientos
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_project` (IN `p_project_id` INT)   BEGIN
-    -- Eliminar los registros relacionados en project_logs
-    DELETE FROM project_logs WHERE project_id = p_project_id;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_project` (IN `project_id` BIGINT, IN `user_id` BIGINT)   BEGIN
+    -- Verificar que el proyecto pertenezca al usuario autenticado
+    DECLARE project_exists INT;
 
-    -- Eliminar el proyecto
-    DELETE FROM projects WHERE id = p_project_id;
+    -- Verificar si el proyecto existe para el usuario autenticado
+    SELECT COUNT(*) INTO project_exists
+    FROM projects
+    WHERE id = project_id AND user_id = user_id;
+
+    -- Si el proyecto existe, eliminarlo
+    IF project_exists > 0 THEN
+        DELETE FROM projects WHERE id = project_id AND user_id = user_id;
+    ELSE
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se pudo encontrar el proyecto o no pertenece al usuario';
+    END IF;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_task` (IN `task_id` BIGINT(20))   BEGIN
-    DELETE FROM tasks WHERE id = task_id;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_task` (IN `p_task_id` BIGINT(20))   BEGIN
+    DELETE FROM tasks
+    WHERE id = p_task_id;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetProjectsByUser` (IN `user_id` BIGINT)   BEGIN
@@ -49,33 +59,51 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `GetTasksByProject` (IN `project_id`
     WHERE project_id = project_id;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insert_project` (IN `project_name` VARCHAR(255), IN `project_user_id` BIGINT(20))   BEGIN
-    INSERT INTO projects (name, user_id, created_at, updated_at)
-    VALUES (project_name, project_user_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insert_project` (IN `project_name` VARCHAR(255), IN `user_id` BIGINT(20))   BEGIN
+    DECLARE new_project_id BIGINT(20);
+
+    -- Insertamos el nuevo proyecto en la tabla 'projects'
+    INSERT INTO projects (name, user_id)
+    VALUES (project_name, user_id);
+
+    -- Obtenemos el ID del proyecto recién insertado
+    SET new_project_id = LAST_INSERT_ID();
+
+    -- Retornamos el proyecto insertado
+    SELECT id, name, user_id, created_at, updated_at
+    FROM projects
+    WHERE id = new_project_id;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insert_task` (IN `p_title` VARCHAR(255), IN `p_description` TEXT, IN `p_is_completed` BOOLEAN, IN `p_project_id` INT)   BEGIN
-    INSERT INTO tasks (title, description, is_completed, project_id)
-    VALUES (p_title, p_description, p_is_completed, p_project_id);
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insert_task` (IN `p_title` VARCHAR(255), IN `p_description` TEXT, IN `p_is_completed` TINYINT(1), IN `p_project_id` BIGINT(20))   BEGIN
+    INSERT INTO tasks (title, description, is_completed, project_id, created_at, updated_at)
+    VALUES (p_title, p_description, p_is_completed, p_project_id, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateProject` (IN `p_project_id` INT, IN `p_name` VARCHAR(255), IN `p_user_id` INT)   BEGIN
-    -- Verifica si el proyecto pertenece al usuario
-    IF EXISTS (SELECT 1 FROM projects WHERE id = p_project_id AND user_id = p_user_id) THEN
-        -- Si el proyecto pertenece al usuario, realiza la actualización
-        UPDATE projects
-        SET name = p_name, updated_at = NOW()
-        WHERE id = p_project_id;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_project` (IN `project_id` BIGINT(20), IN `user_id` BIGINT(20), IN `new_name` VARCHAR(255))   BEGIN
+    -- Actualizamos el nombre del proyecto si pertenece al usuario especificado
+    UPDATE projects
+    SET name = new_name, updated_at = NOW()
+    WHERE id = project_id AND user_id = user_id;
+
+    -- Verificamos si el proyecto fue actualizado
+    IF ROW_COUNT() > 0 THEN
+        -- Retornamos el proyecto actualizado
+        SELECT id, name, user_id, created_at, updated_at
+        FROM projects
+        WHERE id = project_id;
     ELSE
-        -- Si no pertenece al usuario, devuelve un error
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No tienes permiso para actualizar este proyecto';
+        -- Si no se encontró el proyecto o no pertenece al usuario, retornamos un mensaje de error
+        SELECT 'error' AS message, 'No se pudo actualizar el proyecto o no pertenece al usuario' AS details;
     END IF;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_task` (IN `task_id` BIGINT(20), IN `task_title` VARCHAR(255), IN `task_description` TEXT, IN `task_is_completed` BOOLEAN)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_task` (IN `p_task_id` BIGINT(20), IN `p_is_completed` TINYINT(1))   BEGIN
     UPDATE tasks
-    SET title = task_title, description = task_description, is_completed = task_is_completed, updated_at = CURRENT_TIMESTAMP
-    WHERE id = task_id;
+    SET
+        is_completed = p_is_completed,
+        updated_at = CURRENT_TIMESTAMP()
+    WHERE id = p_task_id;
 END$$
 
 DELIMITER ;
@@ -132,7 +160,12 @@ INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `n
 (34, 'App\\Models\\User', 3, 'auth_token', 'be513a2d07a706158388e32633df0b68edaae442e908cc679338dee31439772a', '[\"*\"]', '2024-11-22 01:42:39', NULL, '2024-11-22 00:43:48', '2024-11-22 01:42:39'),
 (36, 'App\\Models\\User', 3, 'auth_token', '1dd3c981387583f1e42748d937c70b5433bfeeaa22ea5f5234951900c51bff10', '[\"*\"]', '2024-11-22 03:02:54', NULL, '2024-11-22 02:08:24', '2024-11-22 03:02:54'),
 (38, 'App\\Models\\User', 6, 'auth_token', 'a699d017f7e5b5ced00a5b0e9e54ecf0f8f6d9eaf74717d783690ce2be7212f8', '[\"*\"]', '2024-11-22 02:41:12', NULL, '2024-11-22 02:35:23', '2024-11-22 02:41:12'),
-(42, 'App\\Models\\User', 3, 'auth_token', '8e612da415b5661bb722ba062136dab9f8efff1d39af24e84d344f41fa5d1704', '[\"*\"]', '2024-11-22 03:24:37', NULL, '2024-11-22 03:03:56', '2024-11-22 03:24:37');
+(42, 'App\\Models\\User', 3, 'auth_token', '8e612da415b5661bb722ba062136dab9f8efff1d39af24e84d344f41fa5d1704', '[\"*\"]', '2024-11-22 03:24:37', NULL, '2024-11-22 03:03:56', '2024-11-22 03:24:37'),
+(43, 'App\\Models\\User', 6, 'auth_token', 'f169227bf87384cd0627ee750625be31a9d7097899161aeb13e1628d728bf092', '[\"*\"]', '2024-11-22 04:15:47', NULL, '2024-11-22 04:15:46', '2024-11-22 04:15:47'),
+(46, 'App\\Models\\User', 3, 'auth_token', '01bdd7c85051b209c9bb72ba93cd120994ea9549f883584376c03f01f0296221', '[\"*\"]', '2024-11-22 04:57:28', NULL, '2024-11-22 04:25:52', '2024-11-22 04:57:28'),
+(47, 'App\\Models\\User', 6, 'auth_token', 'dc72c9fed6319cccb9ba09e28dde503f8c9321583c789087e1609dd13da7787a', '[\"*\"]', '2024-11-22 05:01:39', NULL, '2024-11-22 04:58:04', '2024-11-22 05:01:39'),
+(59, 'App\\Models\\User', 3, 'auth_token', '0fb7c86ec9d858ddf9b249ee76acf76b885b6f29fd35ff850dc6f1eb181f58fc', '[\"*\"]', '2024-11-22 05:24:33', NULL, '2024-11-22 05:19:31', '2024-11-22 05:24:33'),
+(60, 'App\\Models\\User', 6, 'auth_token', '75276f51032c579b72af1807f91d954cf39884088b3b0026d5c166ea06fc05dd', '[\"*\"]', '2024-11-22 05:39:21', NULL, '2024-11-22 05:25:14', '2024-11-22 05:39:21');
 
 -- --------------------------------------------------------
 
@@ -153,8 +186,27 @@ CREATE TABLE `projects` (
 --
 
 INSERT INTO `projects` (`id`, `name`, `user_id`, `created_at`, `updated_at`) VALUES
-(2, 'gestionador', 3, '2024-11-21 20:44:05', '2024-11-21 20:44:05'),
-(3, 'asasas', 6, '2024-11-22 03:03:17', '2024-11-22 03:03:17');
+(8, 'asasasas', 3, '2024-11-21 23:57:28', '2024-11-21 23:57:28'),
+(9, 'asasas', 6, '2024-11-22 00:02:56', '2024-11-22 00:02:56'),
+(10, 'nuevo', 3, '2024-11-22 00:03:55', '2024-11-22 00:03:55');
+
+--
+-- Disparadores `projects`
+--
+DELIMITER $$
+CREATE TRIGGER `after_project_insert` AFTER INSERT ON `projects` FOR EACH ROW BEGIN
+    INSERT INTO project_logs (project_id, action, changed_at)
+    VALUES (NEW.id, 'Proyecto creado', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `after_project_update` AFTER UPDATE ON `projects` FOR EACH ROW BEGIN
+    INSERT INTO project_logs (project_id, action, changed_at)
+    VALUES (NEW.id, 'Proyecto actualizado', NOW());
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -163,11 +215,10 @@ INSERT INTO `projects` (`id`, `name`, `user_id`, `created_at`, `updated_at`) VAL
 --
 
 CREATE TABLE `project_logs` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) UNSIGNED NOT NULL,
   `project_id` bigint(20) UNSIGNED NOT NULL,
-  `action` enum('created','updated','deleted') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `action` varchar(255) NOT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -191,7 +242,8 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `title`, `description`, `is_completed`, `project_id`, `created_at`, `updated_at`) VALUES
-(16, 'asasa', 'sasas', 0, 2, '2024-11-21 21:42:28', '2024-11-21 21:42:28');
+(21, 'pelis', '4564', 1, 8, '2024-11-22 00:15:04', '2024-11-22 00:19:37'),
+(25, 'aaa', 'aaa', 1, 9, '2024-11-22 00:38:33', '2024-11-22 00:39:21');
 
 --
 -- Disparadores `tasks`
@@ -233,7 +285,10 @@ CREATE TABLE `task_logs` (
 --
 
 INSERT INTO `task_logs` (`id`, `task_id`, `project_id`, `action`, `created_at`, `updated_at`) VALUES
-(6, 16, 2, 'created', '2024-11-21 21:42:28', '2024-11-21 21:42:28');
+(32, 21, 8, 'created', '2024-11-22 00:15:04', '2024-11-22 00:15:04'),
+(40, 21, 8, 'updated', '2024-11-22 00:19:37', '2024-11-22 00:19:37'),
+(45, 25, 9, 'created', '2024-11-22 00:38:33', '2024-11-22 00:38:33'),
+(46, 25, 9, 'updated', '2024-11-22 00:39:21', '2024-11-22 00:39:21');
 
 -- --------------------------------------------------------
 
@@ -330,31 +385,31 @@ ALTER TABLE `migrations`
 -- AUTO_INCREMENT de la tabla `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT de la tabla `projects`
 --
 ALTER TABLE `projects`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `project_logs`
 --
 ALTER TABLE `project_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT de la tabla `task_logs`
 --
 ALTER TABLE `task_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
